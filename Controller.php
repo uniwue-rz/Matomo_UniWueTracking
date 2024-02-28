@@ -9,7 +9,7 @@
 
 namespace Piwik\Plugins\UniWueTracking;
 
-use Matomo\Cache\Eager;
+use Matomo\Cache\Lazy;
 use Piwik\Common;
 use Piwik\Db;
 use Piwik\Request;
@@ -25,9 +25,9 @@ class Controller extends \Piwik\Plugin\Controller
     private const int CACHE_DURATION = 24 * 60 * 60; // 1d
     private const int SITE_ALL = 358;
 
-    private Eager $cache;
+    private Lazy $cache;
 
-    public function __construct(Eager $cache) {
+    public function __construct(Lazy $cache) {
         $this->cache = $cache;
         parent::__construct();
     }
@@ -50,16 +50,16 @@ class Controller extends \Piwik\Plugin\Controller
 
     private function getBestMatchingSiteId(string $location): ?int
     {
-        $cacheKey = $this->getCacheKey($location);
-        $siteId = $this->cache->fetch($cacheKey);
+        $cacheKey = "UniWueTracking_locationMap";
+        // this should work, but doesn't: https://github.com/matomo-org/matomo/issues/21979
+        $locationMap = $this->cache->fetch($cacheKey) ?: [];
 
-        if (!$siteId) {
-            $siteId = $this->queryBestMatchingSiteId($location);
-            $this->cache->save($cacheKey, $siteId, self::CACHE_DURATION);
-            $this->cache->persistCacheIfNeeded(self::CACHE_DURATION);
+        if (!isset($locationMap[$location])) {
+            $locationMap[$location] = $this->queryBestMatchingSiteId($location);
+            $this->cache->save($cacheKey, $locationMap, self::CACHE_DURATION);
         }
 
-        return $siteId;
+        return $locationMap[$location];
     }
 
     private function queryBestMatchingSiteId(string $location): ?int
