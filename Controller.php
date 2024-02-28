@@ -52,6 +52,7 @@ class Controller extends \Piwik\Plugin\Controller
     {
         $cacheKey = "UniWueTracking_locationMap";
         // this should work, but doesn't: https://github.com/matomo-org/matomo/issues/21979
+        // TODO: invalidate cache on site modification
         $locationMap = $this->cache->fetch($cacheKey) ?: [];
 
         if (!isset($locationMap[$location])) {
