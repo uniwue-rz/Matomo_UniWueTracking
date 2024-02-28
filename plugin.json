@@ -1,0 +1,29 @@
+{
+    "name": "UniWueTracking",
+    "description": "This plugin contains the tracking logic for a dynamic tracking based on the user's current location.",
+    "version": "0.1.0",
+    "theme": false,
+    "require": {
+        "matomo": ">=5.0.2-stable,<6.0.0-b1"
+    },
+    "authors": [
+        {
+            "name": "Lucas Kinne",
+            "email": "lucas.kinne@uni-wuerzburg.de",
+            "homepage": "https://go.uniwue.de/kinne"
+        }
+    ],
+    "support": {
+        "email": "it-support@uni-wuerzburg.de",
+        "issues": "",
+        "forum": "",
+        "irc": "",
+        "wiki": "",
+        "source": "",
+        "docs": "",
+        "rss": ""
+    },
+    "homepage": "https://www.rz.uni-wuerzburg.de",
+    "license": "GPL v3+",
+    "keywords": ["tracking", "dynamic", "site"]
+}
