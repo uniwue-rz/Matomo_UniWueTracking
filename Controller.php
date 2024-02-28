@@ -9,6 +9,7 @@
 
 namespace Piwik\Plugins\UniWueTracking;
 
+use Matomo\Cache\Eager;
 use Piwik\Common;
 use Piwik\Db;
 use Piwik\Request;
@@ -21,8 +22,15 @@ use Piwik\Request;
  */
 class Controller extends \Piwik\Plugin\Controller
 {
+    private const int CACHE_DURATION = 24 * 60 * 60; // 1d
     private const int SITE_ALL = 358;
 
+    private Eager $cache;
+
+    public function __construct(Eager $cache) {
+        $this->cache = $cache;
+        parent::__construct();
+    }
 
     public function getTrackingScript(): never
     {
@@ -41,6 +49,20 @@ class Controller extends \Piwik\Plugin\Controller
     }
 
     private function getBestMatchingSiteId(string $location): ?int
+    {
+        $cacheKey = $this->getCacheKey($location);
+        $siteId = $this->cache->fetch($cacheKey);
+
+        if (!$siteId) {
+            $siteId = $this->queryBestMatchingSiteId($location);
+            $this->cache->save($cacheKey, $siteId, self::CACHE_DURATION);
+            $this->cache->persistCacheIfNeeded(self::CACHE_DURATION);
+        }
+
+        return $siteId;
+    }
+
+    private function queryBestMatchingSiteId(string $location): ?int
     {
         $siteTable = Common::prefixTable('site');
         $siteUrlTable = Common::prefixTable('site_url');
@@ -97,5 +119,23 @@ class Controller extends \Piwik\Plugin\Controller
     private function getMatomoBaseUrl(): string
     {
         return (empty($_SERVER['HTTPS']) ? 'http' : 'https') . "://" . $_SERVER['HTTP_HOST'];
+    }
+
+    /**
+     * Returns the cache key for the given location string.
+     * 
+     * The cache key alphabet is limited to alphanumerical plus very few special characters,
+     * so hash it to receive a hexadecimal value, which fits this alphabet.
+     * 
+     * MD5 is neither secure nor collision resistant, but it is very fast.
+     * Natural collisions are highly unlikely in our case and if they happen,
+     * some of the corresponding visits will be tracked in the wrong site,
+     * which is not the end of the world. Users can fake visits anyways.
+     *
+     * @param string $location
+     * @return string
+     */
+    private function getCacheKey(string $location): string {
+        return 'UniWueTracking_' . md5($location);
     }
 }
