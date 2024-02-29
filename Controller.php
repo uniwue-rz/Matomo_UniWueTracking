@@ -13,17 +13,16 @@ use Matomo\Cache\Lazy;
 use Piwik\Common;
 use Piwik\Db;
 use Piwik\Request;
+use Piwik\SettingsPiwik;
 
 /**
- * A controller lets you for example create a page that can be added to a menu. For more information read our guide
- * http://developer.piwik.org/guides/mvc-in-piwik or have a look at the our API references for controller and view:
- * http://developer.piwik.org/api-reference/Piwik/Plugin/Controller and
- * http://developer.piwik.org/api-reference/Piwik/View
+ * Custom controller that dynamically generates the JS Tracker Code.
  */
 class Controller extends \Piwik\Plugin\Controller
 {
+    private const string CACHE_KEY = 'UniWueTracking_LocationMap';
     private const int CACHE_DURATION = 24 * 60 * 60; // 1d
-    private const int SITE_ALL = 358;
+    private const int SITE_ALL = 358; // catch-all site
 
     private Lazy $cache;
 
@@ -32,6 +31,13 @@ class Controller extends \Piwik\Plugin\Controller
         parent::__construct();
     }
 
+    /* endpoints */
+
+    /**
+     * Echoes the generated JS Snippet as plain text.
+     *
+     * @return never
+     */
     public function getTrackingScript(): never
     {
         $location = Request::fromGet()->getStringParameter('location', '');
@@ -48,21 +54,39 @@ class Controller extends \Piwik\Plugin\Controller
         exit;
     }
 
+    /* utility */
+
+    /**
+     * Returns the best matching site ID for the given location from either:
+     * - cache (priority) OR
+     * - SQL query (fallback)
+     *
+     * @param string $location
+     * @return integer|null
+     */
     private function getBestMatchingSiteId(string $location): ?int
     {
-        $cacheKey = "UniWueTracking_locationMap";
         // this should work, but doesn't: https://github.com/matomo-org/matomo/issues/21979
         // TODO: invalidate cache on site modification
-        $locationMap = $this->cache->fetch($cacheKey) ?: [];
+        $locationMap = $this->cache->fetch(self::CACHE_KEY) ?: [];
 
         if (!isset($locationMap[$location])) {
             $locationMap[$location] = $this->queryBestMatchingSiteId($location);
-            $this->cache->save($cacheKey, $locationMap, self::CACHE_DURATION);
+            $this->cache->save(self::CACHE_KEY, $locationMap, self::CACHE_DURATION);
         }
 
         return $locationMap[$location];
     }
 
+    /**
+     * Returns the best matching site ID depending on the given location by performing an SQL lookup.
+     * 
+     * This internally retrieves all site URLs that match the location and returns the one which is the longest,
+     * which is equivalent to a "best match".
+     *
+     * @param string $location
+     * @return integer|null
+     */
     private function queryBestMatchingSiteId(string $location): ?int
     {
         $siteTable = Common::prefixTable('site');
@@ -86,6 +110,14 @@ class Controller extends \Piwik\Plugin\Controller
         );
     }
 
+    /**
+     * Returns the JS Tracker snippet that tracks the visit to:
+     * - the catch-all site
+     * - the provided (best-matching) site ID (if any)
+     *
+     * @param integer|null $siteId
+     * @return string
+     */
     private function generateTrackingScript(?int $siteId): string
     {
         $if = function ($condition, $true, $false) {
@@ -96,47 +128,34 @@ class Controller extends \Piwik\Plugin\Controller
         return <<<HTML
             <script type='text/javascript' defer='defer'>
                 var _paq = _paq || [];
-                _paq.push(['setTrackerUrl', '{$this->getMatomoTrackerUrl()}']);
+                _paq.push(['setTrackerUrl', '{$this->getMatomoTrackingEndpoint()}']);
                 _paq.push(['setSiteId', {$siteIdAll}]);
                 _paq.push(['disableCookies']);
                 _paq.push(['enableLinkTracking']);
                 _paq.push(['trackPageView']);
-                {$if($siteId, "_paq.push(['addTracker', '{$this->getMatomoTrackerUrl()}', {$siteId}]);", "")}
+                {$if($siteId, "_paq.push(['addTracker', '{$this->getMatomoTrackingEndpoint()}', {$siteId}]);", "")}
             </script>
-            <script type='text/javascript' defer='defer' src='{$this->getMatomoScriptUrl()}'></script>
+            <script type='text/javascript' defer='defer' src='{$this->getMatomoClientEndpoint()}'></script>
         HTML;
     }
 
-    private function getMatomoScriptUrl(): string
+    /**
+     * Returns the URL to Matomo's JS client.
+     *
+     * @return string
+     */
+    private function getMatomoClientEndpoint(): string
     {
-        return $this->getMatomoBaseUrl() . '/matomo.js';
-    }
-
-    private function getMatomoTrackerUrl(): string
-    {
-        return $this->getMatomoBaseUrl() . '/matomo.php';
-    }
-
-    private function getMatomoBaseUrl(): string
-    {
-        return (empty($_SERVER['HTTPS']) ? 'http' : 'https') . "://" . $_SERVER['HTTP_HOST'];
+        return SettingsPiwik::getPiwikUrl() . 'matomo.js';
     }
 
     /**
-     * Returns the cache key for the given location string.
-     * 
-     * The cache key alphabet is limited to alphanumerical plus very few special characters,
-     * so hash it to receive a hexadecimal value, which fits this alphabet.
-     * 
-     * MD5 is neither secure nor collision resistant, but it is very fast.
-     * Natural collisions are highly unlikely in our case and if they happen,
-     * some of the corresponding visits will be tracked in the wrong site,
-     * which is not the end of the world. Users can fake visits anyways.
+     * Returns the URL to Matomo's Tracking endpoint.
      *
-     * @param string $location
      * @return string
      */
-    private function getCacheKey(string $location): string {
-        return 'UniWueTracking_' . md5($location);
+    private function getMatomoTrackingEndpoint(): string
+    {
+        return SettingsPiwik::getPiwikUrl() . 'matomo.php';
     }
 }

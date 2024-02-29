@@ -1,6 +1,6 @@
 {
     "name": "UniWueTracking",
-    "description": "This plugin contains the tracking logic for a dynamic tracking based on the user's current location.",
+    "description": "This plugin exposes a custom controller action that dynamically generates the JS Tracking Code based on the provided location.",
     "version": "0.1.0",
     "theme": false,
     "require": {
@@ -19,11 +19,11 @@
         "forum": "",
         "irc": "",
         "wiki": "",
-        "source": "",
+        "source": "https://git.rz.uni-wuerzburg.de/diffusion/MUWT/",
         "docs": "",
         "rss": ""
     },
-    "homepage": "https://www.rz.uni-wuerzburg.de",
+    "homepage": "",
     "license": "GPL v3+",
     "keywords": ["tracking", "dynamic", "site"]
 }
