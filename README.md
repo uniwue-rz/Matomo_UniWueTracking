@@ -24,8 +24,8 @@ Code:
     $.ajax({
         data: {
             // order is important for Shibboleth bypassing!
-            "module": "UniWueTracking",
-            "action": "getTrackingScript",
+            "module": "API",
+            "method": "UniWueTracking.getTrackingScript",
             "location": window.location.href
         },
         url: "<Base-URL of the Matomo Installation>",

@@ -18,7 +18,7 @@ use Piwik\SettingsPiwik;
 /**
  * Custom controller that dynamically generates the JS Tracker Code.
  */
-class Controller extends \Piwik\Plugin\Controller
+class API extends \Piwik\Plugin\API
 {
     private const string CACHE_KEY = 'UniWueTracking_LocationMap';
     private const int CACHE_DURATION = 24 * 60 * 60; // 1d
@@ -28,7 +28,6 @@ class Controller extends \Piwik\Plugin\Controller
 
     public function __construct(Lazy $cache) {
         $this->cache = $cache;
-        parent::__construct();
     }
 
     /* endpoints */
