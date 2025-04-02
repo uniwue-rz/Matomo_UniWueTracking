@@ -8,18 +8,18 @@
     },
     "authors": [
         {
-            "name": "Lucas Kinne",
-            "email": "lucas.kinne@uni-wuerzburg.de",
-            "homepage": "https://go.uniwue.de/kinne"
+            "name": "Lucas Roth",
+            "email": "lucas.roth@uni-wuerzburg.de",
+            "homepage": "https://go.uniwue.de/rz-roth-lucas"
         }
     ],
     "support": {
         "email": "it-support@uni-wuerzburg.de",
-        "issues": "",
+        "issues": "https://github.com/uniwue-rz/Matomo_UniWueTracking/issues",
         "forum": "",
         "irc": "",
         "wiki": "",
-        "source": "https://git.rz.uni-wuerzburg.de/diffusion/MUWT/",
+        "source": "https://github.com/uniwue-rz/Matomo_UniWueTracking",
         "docs": "",
         "rss": ""
     },
